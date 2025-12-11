@@ -55,7 +55,7 @@ def extract_seq_from_pcap(pcap_path, seq_len=SEQUENCE_LENGTH):
 
     if len(pkt_info) < 5: return None
 
-    #1. Xác định IP thiết bị (SỬA LẠI: Dùng thống kê tần suất)
+    #Xác định IP thiết bị (SỬA LẠI: Dùng thống kê tần suất)
     ip_candidates = []
     for p in pkt_info:
         if is_private_ip(p['src']): 
@@ -65,12 +65,12 @@ def extract_seq_from_pcap(pcap_path, seq_len=SEQUENCE_LENGTH):
     
     inferred_device_ip = None
     if ip_candidates:
-        # Counter sẽ đếm số lần xuất hiện của từng IP
-        # most_common(1) trả về danh sách 1 phần tử phổ biến nhất: [('192.168.1.5', 50)]
-        # [0][0] để lấy ra string IP
+        #Counter sẽ đếm số lần xuất hiện của từng IP
+        #most_common(1) trả về danh sách 1 phần tử phổ biến nhất: [('192.168.1.5', 50)]
+        #[0][0] để lấy ra string IP
         inferred_device_ip = Counter(ip_candidates).most_common(1)[0][0]
 
-    #2. Xử lý IAT
+    #Xử lý IAT
     start_ts = pkt_info[0]['time']
     rel_times = [p['time'] - start_ts for p in pkt_info]
     iat = [0.0]
@@ -78,18 +78,18 @@ def extract_seq_from_pcap(pcap_path, seq_len=SEQUENCE_LENGTH):
         diff = rel_times[k] - rel_times[k-1]
         iat.append(diff if diff > 0 else 0.0)
 
-    #3. Tạo ma trận dữ liệu
+    #Tạo ma trận dữ liệu
     seq_data = np.zeros((seq_len, NUM_FEATURES), dtype=np.float32)
     curr_len = min(len(pkt_info), seq_len)
     
     for i in range(curr_len):
-        # Feature 0: Size
+        #Feature 0: Size
         seq_data[i, 0] = pkt_info[i]['size']
         
-        # Feature 1: IAT
+        #Feature 1: IAT
         seq_data[i, 1] = iat[i]
         
-        # Feature 2: Direction (+1: Upload/Out, -1: Download/In, 0: Unknown)
+        #Feature 2: Direction (+1: Upload/Out, -1: Download/In, 0: Unknown)
         direction = 0
         if inferred_device_ip:
             if pkt_info[i]['src'] == inferred_device_ip:
@@ -98,7 +98,7 @@ def extract_seq_from_pcap(pcap_path, seq_len=SEQUENCE_LENGTH):
                 direction = -1 # Nhận về (Downlink)
         seq_data[i, 2] = direction
 
-    # Lấy nhãn
+    #Lấy nhãn
     base = os.path.basename(pcap_path)
     label_hint = base.split("_")[0] if "_" in base else "unknown"
 

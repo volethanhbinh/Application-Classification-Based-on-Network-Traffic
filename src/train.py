@@ -22,6 +22,9 @@ def load_data():
     print("[*] Đang tải dữ liệu...")
     X = np.load(os.path.join("X.npy"))
     y = np.load(os.path.join("y.npy"))
+    print(f"[*] Dữ liệu X shape: {X.shape}")   # (num_samples, seq_len, num_features)
+    print(f"[*] Số mẫu: {X.shape[0]}")
+    print(f"[*] Số lớp nhãn: {len(np.unique(y))}")
     return X, y
 #ROC đa lớp
 def plot_multiclass_roc(y_test, y_score, n_classes, class_names):
@@ -108,14 +111,14 @@ def main():
     print("[*] Đang xây dựng mô hình...")
     model = Sequential()
     
-    # CNN Layers
+    #CNN Layers
     model.add(Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(seq_len, num_features)))
     model.add(BatchNormalization())
     model.add(Conv1D(filters=64, kernel_size=3, activation='relu'))
     model.add(MaxPooling1D(pool_size=2))
     model.add(Dropout(0.2))
     
-    # LSTM Layer
+    #LSTM Layer
     model.add(LSTM(64, return_sequences=False))
     model.add(Dropout(0.2))
     
@@ -128,8 +131,8 @@ def main():
     #Huấn luyện
     reduce_lr = ReduceLROnPlateau(
     monitor='val_loss', 
-    factor=0.5,       # Giảm LR đi một nửa khi loss không giảm
-    patience=3,       # Chờ 3 epoch
+    factor=0.5,       #Giảm LR đi một nửa khi loss không giảm
+    patience=3,       #Chờ 3 epoch
     min_lr=0.00001,
     verbose=1
 )
@@ -151,7 +154,7 @@ def main():
 
     print(classification_report(y_true, y_pred, target_names=encoder.classes_))
 
-    # Vẽ ma trận 
+    #Vẽ ma trận 
     cm = confusion_matrix(y_true, y_pred)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=encoder.classes_)
     fig, ax = plt.subplots(figsize=(10, 8))

@@ -18,6 +18,7 @@ plt.style.use('ggplot')
 #CẤU HÌNH
 SEQUENCE_LENGTH = 100     
 NUM_FEATURES = 3 # [Size, IAT, Direction]
+INTERFACE_NAME = "Wi-Fi"
 
 #Cấu hình giao diện & Cảnh báo
 HISTORY_LENGTH = 10      
@@ -25,21 +26,10 @@ HIGH_TRAFFIC_MB = 0.12
 STRANGE_IP_COUNT = 15      
 LOW_CONFIDENCE_THRESH = 0.50 
 
-def is_private_ip(ip_str):
-    if ip_str is None: return False
-    if ip_str.startswith("192.168."): return True
-    if ip_str.startswith("10."): return True
-    if ip_str.startswith("172."):
-        try:
-            second_octet = int(ip_str.split(".")[1])
-            if 16 <= second_octet <= 31: return True
-        except: pass
-    return False
-
 class RealtimeDLApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("HỆ THỐNG GIÁM SÁT netRUNNER (DL + Direction)")
+        self.root.title("HỆ THỐNG GIÁM SÁT netRUNNER")
         self.root.geometry("1280x720")
         self.root.config(bg="#f0f0f0") 
         
@@ -49,14 +39,14 @@ class RealtimeDLApp:
         self.running = True
         self.classes = []
         
-        # Data storage
+        #Data storage
         self.history = {} 
         self.class_labels_ui = {} 
         
-        # UI Elements
+        #UI Elements
         self.setup_ui()
         
-        # Start
+        #Start
         self.root.after(100, self.initialize_model)
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
@@ -126,7 +116,7 @@ class RealtimeDLApp:
             self.lbl_status.config(text=f"Lỗi load model: {e}", fg="red")
 
     def process_packets_to_sequence(self, packets):
-        # 1. Thu thập thông tin gói tin
+        #Thu thập thông tin gói tin
         pkt_info = []
         for pkt in packets:
             if len(pkt_info) >= SEQUENCE_LENGTH: break
@@ -140,10 +130,10 @@ class RealtimeDLApp:
             
         if len(pkt_info) < 15: return None 
 
-        # 2. Lấy IP thiết bị trực tiếp
-        device_ip = get_if_addr("Wi-Fi") 
+        #Lấy IP thiết bị trực tiếp
+        device_ip = get_if_addr(INTERFACE_NAME) 
         
-        # 3. Tính toán Features
+        #Tính toán Features
         start_ts = pkt_info[0]['time']
         rel_times = [p['time'] - start_ts for p in pkt_info]
         iat = [0.0]
@@ -155,22 +145,22 @@ class RealtimeDLApp:
         curr_len = len(pkt_info)
         
         for i in range(curr_len):
-            # Feature 0: Size
+            #Feature 0: Size
             seq_raw[i, 0] = pkt_info[i]['size']
-            # Feature 1: IAT
+            #Feature 1: IAT
             seq_raw[i, 1] = iat[i]
             
-            # Feature 2: Direction
+            #Feature 2: Direction
             direction = 0
             if device_ip:
                 if pkt_info[i]['src'] == device_ip:
-                    direction = 1  # Uplink (Từ máy mình gửi đi)
+                    direction = 1  #Uplink (Từ máy mình gửi đi)
                 elif pkt_info[i]['dst'] == device_ip:
-                    direction = -1 # Downlink (Từ ngoài gửi về máy mình)
+                    direction = -1 #Downlink (Từ ngoài gửi về máy mình)
             
             seq_raw[i, 2] = direction
             
-        # 4. Scale dữ liệu
+        #Scale dữ liệu
         seq_flat = seq_raw.reshape(-1, NUM_FEATURES)
         try:
             seq_scaled_flat = self.scaler.transform(seq_flat)
@@ -195,7 +185,7 @@ class RealtimeDLApp:
             self.root.after(0, lambda: self.lbl_status.config(
                 text=f"Đang thu thập gói tin...", fg="blue"
             ))
-            pkts = sniff(count=SEQUENCE_LENGTH, iface="Wi-Fi")
+            pkts = sniff(count=SEQUENCE_LENGTH, iface=INTERFACE_NAME)
             
             if not pkts:
                 self.root.after(0, lambda: self.update_display(None, 0, 0))
